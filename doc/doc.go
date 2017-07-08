@@ -1,84 +1,75 @@
 package doc
 
-// type op struct {
-// 	version int
-// 	offset  int
-// 	// deleteLength  int
-// 	insertContent []byte
-// }
-
-// type insertOp struct {
-// 	version int
-// 	offset  int
-// 	content []byte
-// }
-
-// type deleteOp struct {
-// 	version int
-// 	offset  int
-// 	length  int
-// }
-
-// type doc struct {
-// 	version int
-// 	pending []op
-// 	content []byte
-// 	// offsets []byte
-// }
-
-// func (doc *doc) applyFromDownstream(op op) error {
-// 	doc.pending = append(doc.pending)
-// 	if doc.version != op.version {
-// 		return fmt.Errorf("versions don't match: %d != %d", doc.version, op.version)
-// 	}
-
-// 	doc.version += len(op.insertContent)
-
-// 	tail := doc.content[op.offset:]
-// 	doc.content = append(doc.content, op.insertContent...)
-// 	copy(doc.content[op.offset:], op.insertContent)
-// 	copy(doc.content[op.offset+len(op.insertContent):], tail)
-// 	return nil
-// }
-
-// func (doc *doc) applyFromUpstream(op op) error {
-
-// }
-
-// func (doc *doc) ackFromUpstream() error {
-// 	// TODO: memory leak?
-// 	if len(doc.pending) == 0 {
-// 		return fmt.Errorf("received ack for nothing")
-// 	}
-// 	doc.pending = doc.pending[1:]
-// 	return nil
-// }
-
 type Char struct {
-	r    rune
-	next int
+	r       rune
+	visible bool
 }
 
 type Doc struct {
-	content string
+	chars []Char
 }
 
 func New(content string) *Doc {
-	return &Doc{content: content}
+	return &Doc{chars: stringToChars(content)}
 }
 
-// Insert b after location p.
-// The first position is index.
-func (d *Doc) Ins(at int, insert string) {
-	at = at - 1 // convert to 0 index
-	d.content = d.content[:at] + insert + d.content[at:]
+func stringToChars(s string) []Char {
+	var chars []Char
+	for _, r := range s {
+		chars = append(chars, Char{r: r, visible: true})
+	}
+	return chars
+
 }
 
-func (d *Doc) Del(at, length int) {
-	at = at - 1 // convert to 0 index
-	d.content = d.content[:at] + d.content[at+length:]
+func appendChars(chars []Char, s string) []Char {
+	for _, r := range s {
+		chars = append(chars, Char{r: r, visible: true})
+	}
+	return chars
 }
 
+// view model
 func (d *Doc) String() string {
-	return string(d.content)
+	var runes []rune
+	for _, c := range d.chars {
+		if c.visible {
+			runes = append(runes, c.r)
+		}
+	}
+	return string(runes)
+}
+
+func (d *Doc) viewToModel(at int) int {
+	// for _, c := range d.chars {
+
+	// }
+	return 0
+}
+
+type Op interface {
+	ExecuteLocal(doc *Doc)
+}
+
+type InsertOp struct {
+	at     int
+	insert string
+}
+
+func (op *InsertOp) ExecuteLocal(doc *Doc) {
+	at := op.at - 1 // convert to 0 index
+	insert := stringToChars(op.insert)
+	doc.chars = append(doc.chars[:at], append(insert, doc.chars[at:]...)...)
+}
+
+type DeleteOp struct {
+	at     int
+	length int
+}
+
+func (op *DeleteOp) ExecuteLocal(doc *Doc) {
+	at := op.at - 1 // convert to 0 index
+	for i := at; i < at+op.length; i++ {
+		doc.chars[i].visible = false
+	}
 }
