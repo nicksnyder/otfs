@@ -48,6 +48,34 @@ func TestExecuteLocal(t *testing.T) {
 			ops:     []Op{&DeleteOp{at: 2, length: 1}},
 			expect:  "a",
 		},
+
+		// Sequence tests
+		{
+			content: "habnc",
+			ops: []Op{
+				&DeleteOp{at: 1, length: 1},
+				&DeleteOp{at: 3, length: 1},
+			},
+			expect: "abc",
+		},
+		{
+			content: "habnc",
+			ops: []Op{
+				&DeleteOp{at: 1, length: 1},
+				&DeleteOp{at: 3, length: 1},
+				&InsertOp{at: 3, insert: "x"},
+			},
+			expect: "abxc",
+		},
+		{
+			content: "habnc",
+			ops: []Op{
+				&DeleteOp{at: 1, length: 1},
+				&DeleteOp{at: 3, length: 1},
+				&InsertOp{at: 3, insert: "xy"},
+			},
+			expect: "abxyc",
+		},
 	}
 
 	for _, test := range tests {
@@ -56,7 +84,7 @@ func TestExecuteLocal(t *testing.T) {
 			op.ExecuteLocal(doc)
 		}
 		if doc.String() != test.expect {
-			t.Errorf("%#v.ExecuteLocal(%q) got %s; expected %s", test.ops, test.content, doc.String(), test.expect)
+			t.Errorf("%+v.ExecuteLocal(%q) got %s; expected %s", test.ops, test.content, doc.String(), test.expect)
 		}
 	}
 }
